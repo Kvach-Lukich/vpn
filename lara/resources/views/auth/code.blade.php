@@ -5,11 +5,10 @@
                 <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
             </a>
         </x-slot>
-
+{{ $wrongcode ?? '' }}
         <!-- Validation Errors -->
-{{ $noinvite ?? '' }}
 
-        <form method="POST" action="login2">
+        <form method="POST" action="code">
             @csrf
 
             <!-- Token -->

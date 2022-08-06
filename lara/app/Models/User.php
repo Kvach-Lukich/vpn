@@ -25,6 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'parent_id',
         'parent_invite_token',
         'code',
+        'no2fa',
     ];
 
     /**

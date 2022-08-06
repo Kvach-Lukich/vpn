@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-use Illuminate\Support\Facades\Session;
 use Mail;
 use App\Mail\codeMail;
 
@@ -30,48 +29,45 @@ class AuthenticatedSessionController extends Controller
      * @param  \App\Http\Requests\Auth\LoginRequest  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+    public function store(LoginRequest $request)
     {
-        if(!Session::has('uid')){
-            $credentials = $request->validate([
-                'email' => ['required', 'email'],
-                'password' => ['required'],
-            ]);
-            
-            Auth::attemptWhen($credentials, function ($user) {
-                if(isset($user->id) && $user->id>0){
-                    Session::put('uid',$user->id);
-                    $user->code=rand(1000,9999);
-                    $user->save();
+        $request->authenticate();
+        $user=Auth::user();
+        if($user->no2fa){
+
+            $request->session()->regenerate();
     
-                    Mail::to($user->mail)->send(new codeMail(['code'=>$user->code]));
-                }
-                return false;
-            });
-            if(Session::has('uid')){
-                return view('auth.code');
-            }else{
-                return redirect('login');
-            }
-        
+            return redirect()->intended(RouteServiceProvider::HOME);
         }else{
-            $code=$request->post('code');
+            $request->session()->put('auth_user',$user->id);
+            $user->code=rand(1000,9999);
+            $request->session()->put('auth_code',$user->code);
+            $user->save();
+            Mail::to($user->mail)->send(new codeMail(['code'=>$user->code]));
+            Auth::guard('web')->logout();
             
-            $user=User::where('id',Session::get('uid'))->where('code',$code)->first();
+            return redirect('code');
+        }
+    }
+    
+    public function code(Request $request){
+        if($request->session()->has('auth_user')){
+            return view('auth.code');
+        }
+    }
+    
+    public function codestore(Request $request){
+        if($request->session()->has('auth_user') && $request->post('code')==$request->session()->get('auth_code') ){
+            $user=User::where('id', $request->session()->get('auth_user'))->where('code', $request->session()->get('auth_code'))->first();
             if($user){
                 Auth::login($user);
-                Session::forget('uid');
+                $request->session()->forget('auth_user', 'auth_code');
                 $request->session()->regenerate();
-                $user->code=NULL;
-                $user->save();
                 return redirect()->intended(RouteServiceProvider::HOME);
-            }else{
-                Session::forget('uid');
-                return redirect('login');
             }
-            //Auth::attempt(['id' => Session::get('uid'), 'code' => $post['code']]);
+        }else{
+            return view('auth.code')->with('wrongcode','Wrong code');
         }
-        
     }
 
     /**
