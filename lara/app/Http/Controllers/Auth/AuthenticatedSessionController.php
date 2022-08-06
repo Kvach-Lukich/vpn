@@ -50,14 +50,19 @@ class AuthenticatedSessionController extends Controller
             return view('auth.code');
         
         }else{
-            $post=$request->validate(['code'=>['required']]);
-            $user=User::where('id',Session::get('uid'))->where('code',$post['code'])->first();
+            $code=$request->post('code');
+            
+            $user=User::where('id',Session::get('uid'))->where('code',$code)->first();
             if($user){
                 Auth::login($user);
+                Session::forget('uid');
                 $request->session()->regenerate();
                 $user->code=NULL;
                 $user->save();
                 return redirect()->intended(RouteServiceProvider::HOME);
+            }else{
+                Session::forget('uid');
+                return redirect('login');
             }
             //Auth::attempt(['id' => Session::get('uid'), 'code' => $post['code']]);
         }
