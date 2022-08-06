@@ -37,17 +37,22 @@ class AuthenticatedSessionController extends Controller
                 'email' => ['required', 'email'],
                 'password' => ['required'],
             ]);
-     
+            
             Auth::attemptWhen($credentials, function ($user) {
-                Session::put('uid',$user->id);
-                $user->code=rand(1000,9999);
-                $user->save();
-
-                Mail::to($user->mail)->send(new codeMail(['code'=>$user->code]));
-
+                if(isset($user->id) && $user->id>0){
+                    Session::put('uid',$user->id);
+                    $user->code=rand(1000,9999);
+                    $user->save();
+    
+                    Mail::to($user->mail)->send(new codeMail(['code'=>$user->code]));
+                }
                 return false;
             });
-            return view('auth.code');
+            if(Session::has('uid')){
+                return view('auth.code');
+            }else{
+                return redirect('login');
+            }
         
         }else{
             $code=$request->post('code');
