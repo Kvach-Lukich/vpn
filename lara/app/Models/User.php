@@ -24,6 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'invite_token',
         'parent_id',
         'parent_invite_token',
+        'code',
     ];
 
     /**

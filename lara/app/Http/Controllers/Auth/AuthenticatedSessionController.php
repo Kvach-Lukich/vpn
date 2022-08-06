@@ -7,6 +7,10 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Support\Facades\Session;
+use Mail;
+use App\Mail\codeMail;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -26,13 +30,38 @@ class AuthenticatedSessionController extends Controller
      * @param  \App\Http\Requests\Auth\LoginRequest  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(LoginRequest $request)
+    public function store(Request $request)
     {
-        $request->authenticate();
+        if(!Session::has('uid')){
+            $credentials = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required'],
+            ]);
+     
+            Auth::attemptWhen($credentials, function ($user) {
+                Session::put('uid',$user->id);
+                $user->code=rand(1000,9999);
+                $user->save();
 
-        $request->session()->regenerate();
+                Mail::to($user->mail)->send(new codeMail(['code'=>$user->code]));
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+                return false;
+            });
+            return view('auth.code');
+        
+        }else{
+            $post=$request->validate(['code'=>['required']]);
+            $user=User::where('id',Session::get('uid'))->where('code',$post['code'])->first();
+            if($user){
+                Auth::login($user);
+                $request->session()->regenerate();
+                $user->code=NULL;
+                $user->save();
+                return redirect()->intended(RouteServiceProvider::HOME);
+            }
+            //Auth::attempt(['id' => Session::get('uid'), 'code' => $post['code']]);
+        }
+        
     }
 
     /**
