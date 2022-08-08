@@ -5,7 +5,7 @@
 </head>
 
 <body>
-ok
-    <h1>{{ $mail['code'] }}</h1>
+Code:
+    <h1>{{ $details['code'] }}</h1>
 </body>
 </html>

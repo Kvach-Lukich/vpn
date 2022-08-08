@@ -10,15 +10,15 @@ use Illuminate\Queue\SerializesModels;
 class codeMail extends Mailable
 {
     use Queueable, SerializesModels;
-    public $mail;
+    public $details;
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct($mail)
+    public function __construct($details)
     {
-        $this->mail=$mail;
+        $this->details=$details;
     }
 
     /**

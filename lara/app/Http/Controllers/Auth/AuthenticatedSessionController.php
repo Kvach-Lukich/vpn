@@ -53,6 +53,8 @@ class AuthenticatedSessionController extends Controller
     public function code(Request $request){
         if($request->session()->has('auth_user')){
             return view('auth.code');
+        }else{
+            return redirect('register');
         }
     }
     
@@ -62,11 +64,27 @@ class AuthenticatedSessionController extends Controller
             if($user){
                 Auth::login($user);
                 $request->session()->forget('auth_user', 'auth_code');
+                $user->code=NULL;
+                $user->save();
                 $request->session()->regenerate();
                 return redirect()->intended(RouteServiceProvider::HOME);
             }
         }else{
             return view('auth.code')->with('wrongcode','Wrong code');
+        }
+    }
+    
+    public function resendcode(Request $request){
+        if($request->session()->has('auth_user')){
+            $user=User::where('id',$request->session()->get('auth_user'))->first();
+            $user->code=rand(1000,9999);
+            $request->session()->put('auth_code',$user->code);
+            Mail::to($user->email)->send(new codeMail(['code'=>$user->code]));
+            $user->save();
+            
+            return redirect('code');
+        }else{
+            return redirect('register');
         }
     }
 
