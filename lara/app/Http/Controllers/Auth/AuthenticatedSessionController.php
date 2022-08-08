@@ -43,7 +43,7 @@ class AuthenticatedSessionController extends Controller
             $user->code=rand(1000,9999);
             $request->session()->put('auth_code',$user->code);
             $user->save();
-            Mail::to($user->mail)->send(new codeMail(['code'=>$user->code]));
+            Mail::to($user->email)->send(new codeMail(['code'=>$user->code]));
             Auth::guard('web')->logout();
             
             return redirect('code');
